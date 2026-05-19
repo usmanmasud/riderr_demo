@@ -12,6 +12,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/ussd',       require('./routes/ussd'));
 app.use('/deliveries', require('./routes/deliveries'));
 app.use('/riders',     require('./routes/riders'));
+app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 5000;
 

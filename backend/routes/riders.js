@@ -19,4 +19,11 @@ router.patch('/:id', async (req, res) => {
   res.json(rider);
 });
 
+router.delete('/:id', async (req, res) => {
+  const rider = await Rider.findByPk(req.params.id);
+  if (!rider) return res.status(404).json({ error: 'Rider not found' });
+  await rider.destroy();
+  res.json({ message: 'Rider deleted' });
+});
+
 module.exports = router;

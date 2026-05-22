@@ -6,6 +6,7 @@ const { connect } = require('./models/db');
 
 const app = express();
 app.use(cors());
+app.use((req, res, next) => { res.setHeader('Bypass-Tunnel-Reminder', 'true'); next(); });
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 

@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // GET all deliveries
 router.get('/', async (req, res) => {
-  const deliveries = await Delivery.findAll({ include: Rider, order: [['createdAt', 'DESC']] });
+  const deliveries = await Delivery.find().populate('rider').sort({ createdAt: -1 });
   res.json(deliveries);
 });
 
@@ -26,13 +26,16 @@ router.post('/', async (req, res) => {
 // PATCH assign rider
 router.patch('/:id/assign', async (req, res) => {
   const { riderId } = req.body;
-  const delivery = await Delivery.findByPk(req.params.id);
+  const delivery = await Delivery.findById(req.params.id);
   if (!delivery) return res.status(404).json({ error: 'Delivery not found' });
 
-  const rider = await Rider.findByPk(riderId);
+  const rider = await Rider.findById(riderId);
   if (!rider) return res.status(404).json({ error: 'Rider not found' });
 
-  await delivery.update({ riderId, status: 'accepted' });
+  delivery.rider = riderId;
+  delivery.status = 'accepted';
+  await delivery.save();
+
   await sendSMS(delivery.customerPhone, `Your delivery ${delivery.trackingCode} has been assigned to rider ${rider.name}.`);
 
   res.json(delivery);
@@ -40,11 +43,8 @@ router.patch('/:id/assign', async (req, res) => {
 
 // GET analytics summary
 router.get('/analytics', async (req, res) => {
-  const { Op } = require('sequelize');
   const statuses = ['pending', 'accepted', 'in_transit', 'delivered', 'failed'];
-  const counts = await Promise.all(
-    statuses.map(s => Delivery.count({ where: { status: s } }))
-  );
+  const counts = await Promise.all(statuses.map(s => Delivery.countDocuments({ status: s })));
   res.json(Object.fromEntries(statuses.map((s, i) => [s, counts[i]])));
 });
 

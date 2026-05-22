@@ -1,9 +1,5 @@
-const { Sequelize } = require('sequelize');
-require('dotenv').config();
+const mongoose = require('mongoose');
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  logging: false,
-});
+const connect = () => mongoose.connect(process.env.MONGODB_URI);
 
-module.exports = sequelize;
+module.exports = { connect, mongoose };

@@ -1,26 +1,27 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('./db');
+const mongoose = require('mongoose');
 
-const Rider = sequelize.define('Rider', {
-  name:  { type: DataTypes.STRING, allowNull: false },
-  phone: { type: DataTypes.STRING, allowNull: false, unique: true },
-  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-});
+const RiderSchema = new mongoose.Schema({
+  name:     { type: String, required: true },
+  phone:    { type: String, required: true, unique: true },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
 
-const Delivery = sequelize.define('Delivery', {
-  trackingCode:    { type: DataTypes.STRING, allowNull: false, unique: true },
-  customerName:    { type: DataTypes.STRING, allowNull: false },
-  customerPhone:   { type: DataTypes.STRING, allowNull: false },
-  pickupAddress:   { type: DataTypes.STRING, allowNull: false },
-  deliveryAddress: { type: DataTypes.STRING, allowNull: false },
+const DeliverySchema = new mongoose.Schema({
+  trackingCode:    { type: String, required: true, unique: true },
+  customerName:    { type: String, required: true },
+  customerPhone:   { type: String, required: true },
+  pickupAddress:   { type: String, required: true },
+  deliveryAddress: { type: String, required: true },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'in_transit', 'delivered', 'failed'),
-    defaultValue: 'pending',
+    type: String,
+    enum: ['pending', 'accepted', 'in_transit', 'delivered', 'failed'],
+    default: 'pending',
   },
-  otp: { type: DataTypes.STRING },
-});
+  otp:    { type: String },
+  rider:  { type: mongoose.Schema.Types.ObjectId, ref: 'Rider', default: null },
+}, { timestamps: true });
 
-Rider.hasMany(Delivery, { foreignKey: 'riderId' });
-Delivery.belongsTo(Rider, { foreignKey: 'riderId' });
+const Rider    = mongoose.model('Rider', RiderSchema);
+const Delivery = mongoose.model('Delivery', DeliverySchema);
 
-module.exports = { Rider, Delivery, sequelize };
+module.exports = { Rider, Delivery };

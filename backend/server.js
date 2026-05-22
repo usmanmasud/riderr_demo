@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { sequelize } = require('./models');
+const { connect } = require('./models/db');
 
 const app = express();
 app.use(cors());
@@ -16,6 +16,6 @@ app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true }).then(() => {
-  app.listen(PORT, () => console.log(`RiderR backend running on port ${PORT}`));
-});
+connect()
+  .then(() => app.listen(PORT, () => console.log(`RiderR backend running on port ${PORT}`)))
+  .catch(err => { console.error('MongoDB connection failed:', err.message); process.exit(1); });

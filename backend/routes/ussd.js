@@ -4,6 +4,7 @@ const { Delivery, Rider } = require('../models');
 const { sendSMS } = require('../sms');
 
 router.post('/', async (req, res) => {
+  try {
   const { phoneNumber, text } = req.body;
   const parts = text ? text.split('*') : [];
   let response = '';
@@ -103,6 +104,11 @@ router.post('/', async (req, res) => {
 
   res.set('Content-Type', 'text/plain');
   res.send(response);
+  } catch (err) {
+    console.error('USSD error:', err);
+    res.set('Content-Type', 'text/plain');
+    res.send('END Something went wrong. Please try again.');
+  }
 });
 
 module.exports = router;

@@ -18,7 +18,7 @@ function normalizePhone(phone) {
 async function sendSMS(phone, message) {
   try {
     const payload = { to: [normalizePhone(phone)], message };
-    if (process.env.AT_SENDER_ID) payload.from = process.env.AT_SENDER_ID;
+    if (process.env.AT_USERNAME !== 'sandbox' && process.env.AT_SENDER_ID) payload.from = process.env.AT_SENDER_ID;
     const result = await sms.send(payload);
     console.log('SMS result:', JSON.stringify(result));
   } catch (err) {

@@ -1,94 +1,123 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { fetchAnalytics } from '@/lib/api';
+import { fetchAnalytics, fetchDeliveries } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import AuthGuard from '@/components/AuthGuard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: '#f59e0b',
-  accepted: '#3b82f6',
+  pending:    '#f59e0b',
+  accepted:   '#3b82f6',
   in_transit: '#8b5cf6',
-  delivered: '#10b981',
-  failed: '#ef4444',
+  delivered:  '#10b981',
+  failed:     '#ef4444',
+  cancelled:  '#6b7280',
 };
 
-const STAT_META = [
-  { key: 'total',      label: 'Total Deliveries', icon: '📊', gradient: 'from-gray-800 to-gray-900' },
-  { key: 'pending',    label: 'Pending',           icon: '⏳', gradient: 'from-yellow-400 to-yellow-500' },
-  { key: 'in_transit', label: 'In Transit',        icon: '🚚', gradient: 'from-purple-500 to-purple-600' },
-  { key: 'delivered',  label: 'Delivered',         icon: '✅', gradient: 'from-emerald-500 to-emerald-600' },
-  { key: 'failed',     label: 'Failed',            icon: '❌', gradient: 'from-red-500 to-red-600' },
-];
-
-export default function DashboardPage() {
+function AdminDashboard() {
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
 
   useEffect(() => { fetchAnalytics().then(setAnalytics); }, []);
 
-  const total = Object.values(analytics).reduce((a, b) => a + b, 0);
-  const data = { ...analytics, total };
+  const chartData = Object.entries(analytics)
+    .filter(([k]) => k !== 'total')
+    .map(([status, count]) => ({ status: status.replace('_', ' '), count, key: status }));
 
-  const chartData = Object.entries(analytics).map(([status, count]) => ({
-    status: status.replace('_', ' '),
-    count,
-    key: status,
-  }));
+  const stats = [
+    { label: 'Total',      value: analytics.total      ?? 0, color: 'bg-gray-800' },
+    { label: 'Pending',    value: analytics.pending     ?? 0, color: 'bg-yellow-500' },
+    { label: 'In Transit', value: analytics.in_transit  ?? 0, color: 'bg-purple-500' },
+    { label: 'Delivered',  value: analytics.delivered   ?? 0, color: 'bg-green-500' },
+    { label: 'Failed',     value: analytics.failed      ?? 0, color: 'bg-red-500' },
+  ];
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-500 mt-1 text-sm">Welcome back — here's what's happening today.</p>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        {STAT_META.map(s => (
-          <div
-            key={s.key}
-            className={`bg-gradient-to-br ${s.gradient} text-white rounded-2xl p-5 shadow-md flex flex-col gap-3`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium opacity-80 uppercase tracking-wide">{s.label}</p>
-              <span className="text-lg">{s.icon}</span>
-            </div>
-            <p className="text-4xl font-bold">{data[s.key] ?? 0}</p>
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+        {stats.map(s => (
+          <div key={s.label} className={`${s.color} text-white rounded-xl p-4 shadow`}>
+            <p className="text-sm opacity-80">{s.label}</p>
+            <p className="text-3xl font-bold mt-1">{s.value}</p>
           </div>
         ))}
       </div>
-
-      {/* Chart */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-base font-semibold text-gray-800">Delivery Status Breakdown</h3>
-            <p className="text-xs text-gray-400 mt-0.5">All-time delivery distribution</p>
-          </div>
-          <div className="flex gap-3 flex-wrap justify-end">
-            {Object.entries(STATUS_COLORS).map(([key, color]) => (
-              <span key={key} className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: color }} />
-                {key.replace('_', ' ')}
-              </span>
-            ))}
-          </div>
-        </div>
+      <div className="bg-white rounded-xl shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Delivery Status Breakdown</h3>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} barSize={44} barCategoryGap="30%">
-            <XAxis dataKey="status" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-            <Tooltip
-              contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 13 }}
-              cursor={{ fill: '#f3f4f6' }}
-            />
-            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-              {chartData.map(entry => (
-                <Cell key={entry.key} fill={STATUS_COLORS[entry.key] ?? '#6b7280'} />
-              ))}
+          <BarChart data={chartData} barSize={48}>
+            <XAxis dataKey="status" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+              {chartData.map(e => <Cell key={e.key} fill={STATUS_COLORS[e.key] ?? '#6b7280'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </>
+  );
+}
+
+function CustomerDashboard() {
+  const { user } = useAuth();
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchDeliveries().then(d => setDeliveries(Array.isArray(d) ? d : []));
+  }, []);
+
+  const counts = {
+    total:      deliveries.length,
+    active:     deliveries.filter(d => ['accepted', 'in_transit'].includes(d.status)).length,
+    delivered:  deliveries.filter(d => d.status === 'delivered').length,
+    pending:    deliveries.filter(d => d.status === 'pending').length,
+  };
+
+  return (
+    <>
+      <p className="text-gray-500 mb-6">Welcome back, {user?.name}!</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'Total Bookings', value: counts.total,     color: 'bg-gray-800' },
+          { label: 'Pending',        value: counts.pending,   color: 'bg-yellow-500' },
+          { label: 'Active',         value: counts.active,    color: 'bg-purple-500' },
+          { label: 'Delivered',      value: counts.delivered, color: 'bg-green-500' },
+        ].map(s => (
+          <div key={s.label} className={`${s.color} text-white rounded-xl p-4 shadow`}>
+            <p className="text-sm opacity-80">{s.label}</p>
+            <p className="text-3xl font-bold mt-1">{s.value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="bg-white rounded-xl shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Recent Deliveries</h3>
+        {deliveries.slice(0, 5).map(d => (
+          <div key={d._id} className="flex items-center justify-between py-3 border-b last:border-0">
+            <div>
+              <p className="font-mono font-semibold text-sm">{d.trackingCode}</p>
+              <p className="text-xs text-gray-500">{d.deliveryAddress}</p>
+            </div>
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+              d.status === 'delivered' ? 'bg-green-100 text-green-700' :
+              d.status === 'pending'   ? 'bg-yellow-100 text-yellow-700' :
+              'bg-purple-100 text-purple-700'
+            }`}>
+              {d.status.replace('_', ' ')}
+            </span>
+          </div>
+        ))}
+        {!deliveries.length && <p className="text-gray-400 text-sm">No deliveries yet. Go to My Deliveries to book one.</p>}
+      </div>
+    </>
+  );
+}
+
+export default function DashboardPage() {
+  const { isAdmin } = useAuth();
+  return (
+    <AuthGuard>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Overview</h2>
+      {isAdmin ? <AdminDashboard /> : <CustomerDashboard />}
+    </AuthGuard>
   );
 }

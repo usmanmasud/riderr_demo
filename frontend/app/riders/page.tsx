@@ -1,13 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { fetchRiders, createRider } from '@/lib/api';
+import { fetchRiders, createRider, updateRider, deleteRider } from '@/lib/api';
+import AuthGuard from '@/components/AuthGuard';
 
-type Rider = { id: number; name: string; phone: string; isActive: boolean };
-
-const AVATAR_COLORS = [
-  'bg-violet-500', 'bg-blue-500', 'bg-emerald-500',
-  'bg-orange-500', 'bg-pink-500', 'bg-cyan-500',
-];
+type Rider = { _id: string; name: string; phone: string; isActive: boolean; totalDeliveries: number; rating: number };
 
 export default function RidersPage() {
   const [riders, setRiders] = useState<Rider[]>([]);
@@ -15,90 +11,98 @@ export default function RidersPage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const load = () => fetchRiders().then(setRiders);
+  const load = async () => {
+    const data = await fetchRiders();
+    setRiders(Array.isArray(data) ? data : []);
+  };
   useEffect(() => { load(); }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await createRider(form);
+    const res = await createRider(form);
+    if (res.error) { alert(res.error); setLoading(false); return; }
     setForm({ name: '', phone: '' });
     setShowForm(false);
     await load();
     setLoading(false);
   }
 
+  async function toggleActive(rider: Rider) {
+    await updateRider(rider._id, { isActive: !rider.isActive });
+    await load();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this rider?')) return;
+    await deleteRider(id);
+    await load();
+  }
+
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Riders</h2>
-          <p className="text-gray-500 mt-1 text-sm">{riders.length} rider{riders.length !== 1 ? 's' : ''} registered</p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
-            showForm
-              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              : 'bg-gray-950 text-white hover:bg-gray-800'
-          }`}
-        >
-          {showForm ? '✕ Cancel' : '+ Add Rider'}
+    <AuthGuard adminOnly>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Riders</h2>
+        <button onClick={() => setShowForm(!showForm)}
+          className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+          {showForm ? 'Cancel' : '+ Add Rider'}
         </button>
       </div>
 
-      {/* Add Form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 flex gap-4 items-end">
+        <form onSubmit={handleCreate} className="bg-white rounded-xl shadow p-6 mb-6 flex gap-4 items-end">
           {(['name', 'phone'] as const).map(key => (
-            <div key={key} className="flex flex-col gap-1.5 flex-1">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{key}</label>
-              <input
-                required
-                placeholder={key === 'name' ? 'Full name' : '+234...'}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+            <div key={key} className="flex flex-col gap-1 flex-1">
+              <label className="text-sm text-gray-600 capitalize">{key}</label>
+              <input required
+                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                 value={form[key]}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
               />
             </div>
           ))}
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50 shadow-sm"
-          >
+          <button type="submit" disabled={loading}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50">
             {loading ? 'Adding...' : 'Add Rider'}
           </button>
         </form>
       )}
 
-      {/* Rider Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {riders.map((r, i) => (
-          <div key={r.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className={`w-12 h-12 rounded-2xl ${AVATAR_COLORS[i % AVATAR_COLORS.length]} text-white flex items-center justify-center text-lg font-bold flex-shrink-0`}>
-              {r.name[0].toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{r.name}</p>
-              <p className="text-sm text-gray-400 mt-0.5">{r.phone}</p>
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2 inline-block ${
-                r.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'
-              }`}>
-                {r.isActive ? '● Active' : '○ Inactive'}
+        {riders.map(r => (
+          <div key={r._id} className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-12 h-12 rounded-full bg-gray-900 text-white flex items-center justify-center text-lg font-bold">
+                {r.name[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-800 truncate">{r.name}</p>
+                <p className="text-sm text-gray-500">{r.phone}</p>
+              </div>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {r.isActive ? 'Active' : 'Inactive'}
               </span>
+            </div>
+            <div className="flex gap-4 text-xs text-gray-500 mb-3">
+              <span>📦 {r.totalDeliveries} deliveries</span>
+              <span>⭐ {r.rating.toFixed(1)} rating</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => toggleActive(r)}
+                className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition ${
+                  r.isActive ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                }`}>
+                {r.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button onClick={() => handleDelete(r._id)}
+                className="flex-1 text-xs py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 transition">
+                Delete
+              </button>
             </div>
           </div>
         ))}
-        {!riders.length && (
-          <div className="col-span-3 text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">🏍️</p>
-            <p className="font-medium">No riders registered yet</p>
-            <p className="text-sm mt-1">Click "+ Add Rider" to get started</p>
-          </div>
-        )}
+        {!riders.length && <p className="text-gray-400 col-span-3 text-center py-10">No riders registered yet</p>}
       </div>
-    </div>
+    </AuthGuard>
   );
 }

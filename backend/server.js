@@ -10,6 +10,7 @@ app.use((req, res, next) => { res.setHeader('Bypass-Tunnel-Reminder', 'true'); n
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use((req, res, next) => { console.log(`${req.method} ${req.path}`); next(); });
 app.use('/ussd',       require('./routes/ussd'));
 app.use('/deliveries', require('./routes/deliveries'));
 app.use('/riders',     require('./routes/riders'));

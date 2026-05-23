@@ -26,7 +26,8 @@ export default function RiderDashboard() {
   const [profile, setProfile]   = useState<any>(null);
 
   useEffect(() => {
-    if (!loading && (!user || user.role !== 'rider')) router.replace('/login');
+    if (!loading && !user) { router.replace('/login'); return; }
+    if (!loading && user && user.role !== 'rider') { router.replace('/'); }
   }, [user, loading, router]);
 
   const loadJobs = async () => {

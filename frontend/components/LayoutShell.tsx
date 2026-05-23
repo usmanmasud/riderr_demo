@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 
-const NO_SHELL = ['/login', '/register', '/track', '/rider'];
+const NO_SHELL = ['/login', '/register', '/track', '/rider/dashboard'];
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

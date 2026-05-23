@@ -4,9 +4,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 const ADMIN_LINKS = [
-  { href: '/',            label: 'Dashboard',  icon: '▦' },
-  { href: '/deliveries',  label: 'Deliveries', icon: '📦' },
-  { href: '/riders',      label: 'Riders',     icon: '🏍️' },
+  { href: '/',             label: 'Dashboard',  icon: '▦' },
+  { href: '/deliveries',   label: 'Deliveries', icon: '📦' },
+  { href: '/riders',       label: 'Riders',     icon: '🏍️' },
+  { href: '/admin/users',  label: 'Users',      icon: '👥' },
 ];
 
 const CUSTOMER_LINKS = [

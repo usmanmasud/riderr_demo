@@ -19,10 +19,17 @@ async function protect(req, res, next) {
 }
 
 function adminOnly(req, res, next) {
-  if (req.user?.role !== 'admin') {
+  if (!['admin'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Admin access required.' });
   }
   next();
 }
 
-module.exports = { protect, adminOnly };
+function riderOnly(req, res, next) {
+  if (req.user?.role !== 'rider') {
+    return res.status(403).json({ error: 'Rider access required.' });
+  }
+  next();
+}
+
+module.exports = { protect, adminOnly, riderOnly };

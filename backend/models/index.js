@@ -5,7 +5,7 @@ const UserSchema = new mongoose.Schema({
   name:     { type: String, required: true, trim: true },
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, minlength: 6 },
-  role:     { type: String, enum: ['admin', 'customer'], default: 'customer' },
+  role:     { type: String, enum: ['admin', 'customer', 'rider'], default: 'customer' },
   phone:    { type: String, trim: true },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
@@ -32,6 +32,7 @@ const RiderSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   totalDeliveries: { type: Number, default: 0 },
   rating:          { type: Number, default: 5.0, min: 1, max: 5 },
+  userId:          { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
 const DeliverySchema = new mongoose.Schema({
@@ -49,6 +50,8 @@ const DeliverySchema = new mongoose.Schema({
   rider:        { type: mongoose.Schema.Types.ObjectId, ref: 'Rider', default: null },
   createdBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   notes:        { type: String, trim: true },
+  scheduledAt:  { type: Date, default: null },
+  price:        { type: Number, default: null },
   statusHistory: [{
     status:    { type: String },
     timestamp: { type: Date, default: Date.now },
@@ -64,8 +67,16 @@ DeliverySchema.pre('save', function (next) {
   next();
 });
 
+const RatingSchema = new mongoose.Schema({
+  delivery: { type: mongoose.Schema.Types.ObjectId, ref: 'Delivery', required: true, unique: true },
+  rider:    { type: mongoose.Schema.Types.ObjectId, ref: 'Rider', required: true },
+  score:    { type: Number, required: true, min: 1, max: 5 },
+  comment:  { type: String, trim: true },
+}, { timestamps: true });
+
 const User     = mongoose.model('User', UserSchema);
 const Rider    = mongoose.model('Rider', RiderSchema);
 const Delivery = mongoose.model('Delivery', DeliverySchema);
+const Rating   = mongoose.model('Rating', RatingSchema);
 
-module.exports = { User, Rider, Delivery };
+module.exports = { User, Rider, Delivery, Rating };

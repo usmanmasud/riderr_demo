@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { fetchAnalytics, fetchDeliveries } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import AuthGuard from '@/components/AuthGuard';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useSocket } from '@/hooks/useSocket';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts';
 
 const STATUS_COLORS: Record<string, string> = {
   pending:    '#f59e0b',
@@ -15,13 +16,16 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function AdminDashboard() {
-  const [analytics, setAnalytics] = useState<Record<string, number>>({});
+  const [analytics, setAnalytics] = useState<Record<string, any>>({});
 
-  useEffect(() => { fetchAnalytics().then(setAnalytics); }, []);
+  const load = () => fetchAnalytics().then(d => { if (!d.error) setAnalytics(d); });
+  useEffect(() => { load(); }, []);
+
+  useSocket(() => load(), () => load());
 
   const chartData = Object.entries(analytics)
-    .filter(([k]) => k !== 'total')
-    .map(([status, count]) => ({ status: status.replace('_', ' '), count, key: status }));
+    .filter(([k]) => !['total', 'revenue', 'dailyTrend'].includes(k))
+    .map(([status, count]) => ({ status: status.replace('_', ' '), count: count as number, key: status }));
 
   const stats = [
     { label: 'Total',      value: analytics.total      ?? 0, color: 'bg-gray-800' },
@@ -33,7 +37,7 @@ function AdminDashboard() {
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         {stats.map(s => (
           <div key={s.label} className={`${s.color} text-white rounded-xl p-4 shadow`}>
             <p className="text-sm opacity-80">{s.label}</p>
@@ -41,18 +45,43 @@ function AdminDashboard() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Delivery Status Breakdown</h3>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} barSize={48}>
-            <XAxis dataKey="status" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-              {chartData.map(e => <Cell key={e.key} fill={STATUS_COLORS[e.key] ?? '#6b7280'} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+
+      {analytics.revenue !== undefined && (
+        <div className="bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-xl p-5 shadow mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm opacity-80">Total Revenue (Delivered)</p>
+            <p className="text-3xl font-bold mt-1">₦{(analytics.revenue as number).toLocaleString()}</p>
+          </div>
+          <span className="text-5xl opacity-30">₦</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Status Breakdown</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} barSize={36}>
+              <XAxis dataKey="status" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                {chartData.map(e => <Cell key={e.key} fill={STATUS_COLORS[e.key] ?? '#6b7280'} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">Last 7 Days</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={analytics.dailyTrend ?? []}>
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </>
   );
@@ -67,10 +96,10 @@ function CustomerDashboard() {
   }, []);
 
   const counts = {
-    total:      deliveries.length,
-    active:     deliveries.filter(d => ['accepted', 'in_transit'].includes(d.status)).length,
-    delivered:  deliveries.filter(d => d.status === 'delivered').length,
-    pending:    deliveries.filter(d => d.status === 'pending').length,
+    total:     deliveries.length,
+    active:    deliveries.filter(d => ['accepted', 'in_transit'].includes(d.status)).length,
+    delivered: deliveries.filter(d => d.status === 'delivered').length,
+    pending:   deliveries.filter(d => d.status === 'pending').length,
   };
 
   return (

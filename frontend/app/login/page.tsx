@@ -16,8 +16,9 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(form.email, form.password);
-      router.replace('/');
+      const { role } = await login(form.email, form.password);
+      if (role === 'rider') router.replace('/rider/dashboard');
+      else router.replace('/');
     } catch (err: any) {
       setError(err.message || 'Login failed.');
     } finally {

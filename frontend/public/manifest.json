@@ -1,0 +1,19 @@
+{
+  "name": "RiderR Logistics",
+  "short_name": "RiderR",
+  "description": "Real-time delivery management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#facc15",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["logistics", "productivity", "business"],
+  "shortcuts": [
+    { "name": "Track Delivery", "url": "/track", "description": "Track a delivery by code" },
+    { "name": "New Delivery",   "url": "/deliveries", "description": "Book a new delivery" }
+  ]
+}

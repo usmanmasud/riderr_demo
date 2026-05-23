@@ -7,7 +7,7 @@ type Rider = { _id: string; name: string; phone: string; isActive: boolean; tota
 
 export default function RidersPage() {
   const [riders, setRiders] = useState<Rider[]>([]);
-  const [form, setForm] = useState({ name: '', phone: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' });
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +22,7 @@ export default function RidersPage() {
     setLoading(true);
     const res = await createRider(form);
     if (res.error) { alert(res.error); setLoading(false); return; }
-    setForm({ name: '', phone: '' });
+    setForm({ name: '', phone: '', email: '', password: '' });
     setShowForm(false);
     await load();
     setLoading(false);
@@ -50,21 +50,23 @@ export default function RidersPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl shadow p-6 mb-6 flex gap-4 items-end">
-          {(['name', 'phone'] as const).map(key => (
-            <div key={key} className="flex flex-col gap-1 flex-1">
-              <label className="text-sm text-gray-600 capitalize">{key}</label>
-              <input required
+        <form onSubmit={handleCreate} className="bg-white rounded-xl shadow p-6 mb-6 grid grid-cols-2 gap-4">
+          {([['name','Name'],['phone','Phone'],['email','Email'],['password','Password']] as const).map(([key, label]) => (
+            <div key={key} className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">{label}</label>
+              <input required type={key === 'password' ? 'password' : 'text'}
                 className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
-                value={form[key]}
+                value={(form as any)[key]}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
               />
             </div>
           ))}
-          <button type="submit" disabled={loading}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50">
-            {loading ? 'Adding...' : 'Add Rider'}
-          </button>
+          <div className="col-span-2">
+            <button type="submit" disabled={loading}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50">
+              {loading ? 'Adding...' : 'Add Rider'}
+            </button>
+          </div>
         </form>
       )}
 

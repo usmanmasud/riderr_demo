@@ -116,7 +116,7 @@ router.post('/', async (req, res) => {
       if (parts.length === 1) {
         const rider = await Rider.findOne({ phone });
         if (!rider) return res.send('END Your number is not registered as a rider. Contact admin.');
-        response = `CON Rider Menu — ${rider.name}\n1. View My Active Deliveries\n2. Accept a Job\n3. Confirm Delivery (OTP)\n4. Report Issue`;
+        response = `CON Rider Menu — ${rider.name}\n1. View My Active Deliveries\n2. Accept a Job\n3. Mark as Picked Up\n4. Confirm Delivery (OTP)\n5. Report Issue`;
 
       // ── 2.1 VIEW ACTIVE DELIVERIES ─────────────────────────────────────
       } else if (parts[1] === '1') {
@@ -154,8 +154,26 @@ router.post('/', async (req, res) => {
           response = `END Job ${selected.trackingCode} accepted!\nPickup: ${selected.pickupAddress}\nDeliver to: ${selected.deliveryAddress}\nCustomer OTP will be needed on delivery.`;
         }
 
-      // ── 2.3 CONFIRM DELIVERY ───────────────────────────────────────────
+      // ── 2.3 MARK IN TRANSIT ────────────────────────────────────────────
       } else if (parts[1] === '3') {
+        if (parts.length === 2) {
+          response = 'CON Enter tracking code to mark as picked up:';
+        } else if (parts.length === 3) {
+          const rider = await Rider.findOne({ phone });
+          if (!rider) return res.send('END Not registered as a rider.');
+          const delivery = await Delivery.findOne({ trackingCode: parts[2].toUpperCase(), rider: rider._id });
+          if (!delivery) return res.send('END Delivery not found or not assigned to you.');
+          if (delivery.status !== 'accepted') return res.send(`END Delivery is already ${delivery.status}.`);
+          delivery.status = 'in_transit';
+          await delivery.save();
+          await sendSMS(delivery.customerPhone,
+            `Your package ${delivery.trackingCode} has been picked up and is now IN TRANSIT. Rider: ${rider.name} (${rider.phone})`
+          );
+          response = `END ${delivery.trackingCode} marked as In Transit!\nCustomer has been notified.`;
+        }
+
+      // ── 2.4 CONFIRM DELIVERY ───────────────────────────────────────────
+      } else if (parts[1] === '4') {
         if (parts.length === 2) {
           response = 'CON Enter tracking code:';
         } else if (parts.length === 3) {
@@ -181,8 +199,8 @@ router.post('/', async (req, res) => {
           response = `END Delivery ${delivery.trackingCode} confirmed!\nGreat job! Your stats have been updated.`;
         }
 
-      // ── 2.4 REPORT ISSUE ───────────────────────────────────────────────
-      } else if (parts[1] === '4') {
+      // ── 2.5 REPORT ISSUE ───────────────────────────────────────────────
+      } else if (parts[1] === '5') {
         if (parts.length === 2) {
           response = `CON Select issue type:\n1. Cannot locate address\n2. Customer not available\n3. Package damaged\n4. Security concern`;
         } else if (parts.length === 3) {

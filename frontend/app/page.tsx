@@ -11,14 +11,21 @@ const STATUS_COLORS: Record<string, string> = {
   failed: '#ef4444',
 };
 
+const STAT_META = [
+  { key: 'total',      label: 'Total Deliveries', icon: '📊', gradient: 'from-gray-800 to-gray-900' },
+  { key: 'pending',    label: 'Pending',           icon: '⏳', gradient: 'from-yellow-400 to-yellow-500' },
+  { key: 'in_transit', label: 'In Transit',        icon: '🚚', gradient: 'from-purple-500 to-purple-600' },
+  { key: 'delivered',  label: 'Delivered',         icon: '✅', gradient: 'from-emerald-500 to-emerald-600' },
+  { key: 'failed',     label: 'Failed',            icon: '❌', gradient: 'from-red-500 to-red-600' },
+];
+
 export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    fetchAnalytics().then(setAnalytics);
-  }, []);
+  useEffect(() => { fetchAnalytics().then(setAnalytics); }, []);
 
   const total = Object.values(analytics).reduce((a, b) => a + b, 0);
+  const data = { ...analytics, total };
 
   const chartData = Object.entries(analytics).map(([status, count]) => ({
     status: status.replace('_', ' '),
@@ -26,35 +33,55 @@ export default function DashboardPage() {
     key: status,
   }));
 
-  const stats = [
-    { label: 'Total Deliveries', value: total, color: 'bg-gray-800' },
-    { label: 'Pending', value: analytics.pending ?? 0, color: 'bg-yellow-500' },
-    { label: 'In Transit', value: analytics.in_transit ?? 0, color: 'bg-purple-500' },
-    { label: 'Delivered', value: analytics.delivered ?? 0, color: 'bg-green-500' },
-    { label: 'Failed', value: analytics.failed ?? 0, color: 'bg-red-500' },
-  ];
-
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Overview</h2>
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
+        <p className="text-gray-500 mt-1 text-sm">Welcome back — here's what's happening today.</p>
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-        {stats.map(s => (
-          <div key={s.label} className={`${s.color} text-white rounded-xl p-4 shadow`}>
-            <p className="text-sm opacity-80">{s.label}</p>
-            <p className="text-3xl font-bold mt-1">{s.value}</p>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        {STAT_META.map(s => (
+          <div
+            key={s.key}
+            className={`bg-gradient-to-br ${s.gradient} text-white rounded-2xl p-5 shadow-md flex flex-col gap-3`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium opacity-80 uppercase tracking-wide">{s.label}</p>
+              <span className="text-lg">{s.icon}</span>
+            </div>
+            <p className="text-4xl font-bold">{data[s.key] ?? 0}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Delivery Status Breakdown</h3>
+      {/* Chart */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-base font-semibold text-gray-800">Delivery Status Breakdown</h3>
+            <p className="text-xs text-gray-400 mt-0.5">All-time delivery distribution</p>
+          </div>
+          <div className="flex gap-3 flex-wrap justify-end">
+            {Object.entries(STATUS_COLORS).map(([key, color]) => (
+              <span key={key} className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: color }} />
+                {key.replace('_', ' ')}
+              </span>
+            ))}
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} barSize={48}>
-            <XAxis dataKey="status" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+          <BarChart data={chartData} barSize={44} barCategoryGap="30%">
+            <XAxis dataKey="status" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+            <Tooltip
+              contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: 13 }}
+              cursor={{ fill: '#f3f4f6' }}
+            />
+            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
               {chartData.map(entry => (
                 <Cell key={entry.key} fill={STATUS_COLORS[entry.key] ?? '#6b7280'} />
               ))}

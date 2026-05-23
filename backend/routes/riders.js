@@ -6,9 +6,16 @@ router.get('/', async (req, res) => {
   res.json(await Rider.find());
 });
 
+function normalizePhone(phone) {
+  phone = phone.replace(/\s+/g, '');
+  if (phone.startsWith('0')) return '+234' + phone.slice(1);
+  if (phone.startsWith('234')) return '+' + phone;
+  return phone;
+}
+
 router.post('/', async (req, res) => {
   const { name, phone } = req.body;
-  const rider = await Rider.create({ name, phone });
+  const rider = await Rider.create({ name, phone: normalizePhone(phone) });
   res.status(201).json(rider);
 });
 

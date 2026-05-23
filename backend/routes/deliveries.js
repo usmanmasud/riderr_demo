@@ -13,12 +13,13 @@ router.get('/', async (req, res) => {
 // POST create delivery
 router.post('/', async (req, res) => {
   const { customerName, customerPhone, pickupAddress, deliveryAddress } = req.body;
+  const phone = customerPhone.replace(/\s+/g, '').replace(/^0/, '+234').replace(/^234/, '+234');
   const trackingCode = 'RDR-' + uuidv4().slice(0, 6).toUpperCase();
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-  const delivery = await Delivery.create({ trackingCode, customerName, customerPhone, pickupAddress, deliveryAddress, otp });
+  const delivery = await Delivery.create({ trackingCode, customerName, customerPhone: phone, pickupAddress, deliveryAddress, otp });
 
-  await sendSMS(customerPhone, `Hi ${customerName}, your delivery has been created. Tracking code: ${trackingCode}. OTP for confirmation: ${otp}`);
+  await sendSMS(phone, `Hi ${customerName}, your delivery has been created. Tracking code: ${trackingCode}. OTP for confirmation: ${otp}`);
 
   res.status(201).json(delivery);
 });
